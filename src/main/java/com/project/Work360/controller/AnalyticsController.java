@@ -20,7 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/analytics")
-@Tag(name = "4 - Analytics", description = "Gerencia eventos e métricas analíticas dos usuários")
+@Tag(name = "5 - Analytics", description = "Gerencia eventos e métricas analíticas dos usuários")
 public class AnalyticsController {
 
     @Autowired

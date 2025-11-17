@@ -18,7 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 @RestController
 @RequestMapping("/relatorios")
-@Tag(name = "5 - Relatórios")
+@Tag(name = "6 - Relatórios")
 public class RelatorioController {
 
     @Autowired

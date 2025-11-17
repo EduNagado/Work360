@@ -10,9 +10,9 @@ import com.project.Work360.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
-
 @Service
 public class UsuarioService {
 
@@ -20,12 +20,20 @@ public class UsuarioService {
     private final UsuarioMapper usuarioMapper = new UsuarioMapper();
 
     @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
     public UsuarioService(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
+
     public UsuarioResponse save(UsuarioRequest request) {
         Usuario usuario = usuarioMapper.toEntity(request);
+
+        String senhaCriptografada = passwordEncoder.encode(request.senha());
+        usuario.setSenha(senhaCriptografada);
+
         Usuario salvo = usuarioRepository.save(usuario);
         return usuarioMapper.toResponse(salvo);
     }
@@ -44,16 +52,21 @@ public class UsuarioService {
                 .orElse(null);
     }
 
+
     public UsuarioResponse update(UsuarioRequest request, Long id) {
         Optional<Usuario> optional = usuarioRepository.findById(id);
+
         if (optional.isPresent()) {
             Usuario usuario = optional.get();
+
             usuario.setNome(request.nome());
             usuario.setEmail(request.email());
-            usuario.setSenha(request.senha());
+
+
             Usuario atualizado = usuarioRepository.save(usuario);
             return usuarioMapper.toResponse(atualizado);
         }
+
         return null;
     }
 

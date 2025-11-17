@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/tarefas")
-@Tag(name = "2 - Tarefas")
+@Tag(name = "3 - Tarefas")
 public class TarefaController {
 
     @Autowired

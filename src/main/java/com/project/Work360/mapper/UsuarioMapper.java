@@ -19,8 +19,7 @@ public class UsuarioMapper {
         return new UsuarioResponse(
                 usuario.getId(),
                 usuario.getNome(),
-                usuario.getEmail(),
-                usuario.getSenha()
+                usuario.getEmail()
         );
     }
 }

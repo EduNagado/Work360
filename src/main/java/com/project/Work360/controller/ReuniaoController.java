@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/reunioes")
-@Tag(name = "3 - Reuniões")
+@Tag(name = "4 - Reuniões")
 public class ReuniaoController {
 
     @Autowired
