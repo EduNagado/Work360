@@ -88,14 +88,14 @@ public class AnalyticsService {
         Usuario usuario = usuarioService.findUsuarioById(usuarioId);
         LocalDate hoje = LocalDate.now();
 
-        // Limpa métricas existentes para o mesmo dia (evita duplicação)
+
         metricaRepository.deleteByUsuarioIdAndData(usuarioId, hoje);
 
-        // Define intervalo do dia
+
         LocalDateTime inicioDoDia = hoje.atStartOfDay();
         LocalDateTime fimDoDia = inicioDoDia.plusDays(1).minusSeconds(1);
 
-        // Busca todos os eventos do dia
+
         List<AnalyticsEvento> eventos = eventoRepository.findByUsuarioIdAndTimestampBetween(
                 usuarioId, inicioDoDia, fimDoDia);
 
@@ -104,9 +104,7 @@ public class AnalyticsService {
             return;
         }
 
-        // --------------------------
-        // 1️⃣ Calcular tarefas concluídas e tempo total estimado
-        // --------------------------
+
         long tarefasConcluidas = eventos.stream()
                 .filter(e -> e.getTipoEvento() == TipoEvento.TAREFA_CONCLUIDA)
                 .count();
@@ -116,9 +114,7 @@ public class AnalyticsService {
                 .mapToInt(e -> e.getTarefa().getEstimativaMinutos() != null ? e.getTarefa().getEstimativaMinutos() : 0)
                 .sum();
 
-        // --------------------------
-        // 2️⃣ Calcular tempo total de reuniões e foco
-        // --------------------------
+
         Map<Long, LocalDateTime> inicioReunioes = new HashMap<>();
         Map<Long, LocalDateTime> inicioFoco = new HashMap<>();
 
@@ -127,7 +123,7 @@ public class AnalyticsService {
 
         for (AnalyticsEvento e : eventos) {
 
-            // --- REUNIÕES ---
+
             if (e.getTipoEvento() == TipoEvento.REUNIAO_INICIO && e.getReuniao() != null) {
                 inicioReunioes.put(e.getReuniao().getId(), e.getTimestamp());
             } else if (e.getTipoEvento() == TipoEvento.REUNIAO_FIM && e.getReuniao() != null) {
@@ -137,7 +133,7 @@ public class AnalyticsService {
                 }
             }
 
-            // --- FOCO ---
+
             if (e.getTipoEvento() == TipoEvento.FOCO_INICIO) {
                 inicioFoco.put(e.getId(), e.getTimestamp());
             } else if (e.getTipoEvento() == TipoEvento.FOCO_FIM) {
@@ -151,9 +147,7 @@ public class AnalyticsService {
             }
         }
 
-        // --------------------------
-        // 3️⃣ Calcular período mais produtivo (hora com mais eventos)
-        // --------------------------
+
         Map<Integer, Long> contagemPorHora = eventos.stream()
                 .filter(e -> e.getTipoEvento() == TipoEvento.FOCO_INICIO ||
                         e.getTipoEvento() == TipoEvento.TAREFA_CONCLUIDA ||
@@ -165,16 +159,14 @@ public class AnalyticsService {
                 .map(e -> e.getKey() + ":00 - " + (e.getKey() + 1) + ":00")
                 .orElse("Não definido");
 
-        // ✅ Regra de "mínimo de dados" — só gera métrica se houver atividade real
+
         if (tarefasConcluidas == 0 && minutosFoco == 0 && minutosReuniao == 0) {
             System.out.println("Nenhum dado relevante para gerar métricas de "
                     + usuario.getNome() + " em " + hoje);
             return;
         }
 
-        // --------------------------
-        // 4️⃣ Salvar métricas consolidadas
-        // --------------------------
+
         AnalyticsMetrica metrica = new AnalyticsMetrica();
         metrica.setUsuario(usuario);
         metrica.setData(hoje);
