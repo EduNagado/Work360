@@ -44,16 +44,14 @@ public class RelatorioService {
     public RelatorioResponse gerarRelatorioCompleto(Long usuarioId, LocalDate dataInicio, LocalDate dataFim) {
         Usuario usuario = usuarioService.findUsuarioById(usuarioId);
 
-        // Busca as métricas do intervalo
         List<AnalyticsMetrica> metricas = metricaRepository.findByUsuarioIdAndDataBetween(
                 usuarioId, dataInicio, dataFim);
 
         if (metricas.isEmpty()) {
-            System.out.println("Nenhuma métrica encontrada no período informado.");
             throw new RuntimeException("Sem métricas para gerar relatório.");
         }
 
-        // ---- 1️⃣ Calcular somatórios e médias ----
+        // Somatórios básicos
         int totalTarefasConcluidas = metricas.stream()
                 .mapToInt(m -> m.getTarefasConcluidasNoDia() != null ? m.getTarefasConcluidasNoDia() : 0)
                 .sum();
@@ -62,16 +60,18 @@ public class RelatorioService {
                 .mapToInt(m -> m.getMinutosFoco() != null ? m.getMinutosFoco() : 0)
                 .sum();
 
+        // Minutos de reunião
         int totalMinutosReuniao = metricas.stream()
                 .mapToInt(m -> m.getMinutosReuniao() != null ? m.getMinutosReuniao() : 0)
                 .sum();
 
-        // ---- 2️⃣ Buscar tarefas pendentes e reuniões realizadas ----
+        // Tarefas pendentes
         int tarefasPendentes = (int) tarefaRepository.findByUsuarioId(usuarioId)
                 .stream()
                 .filter(t -> !t.isConcluida())
                 .count();
 
+        // Reuniões realizadas no intervalo
         int reunioesRealizadas = (int) reuniaoRepository.findByUsuarioId(usuarioId)
                 .stream()
                 .filter(r -> r.getData() != null
@@ -79,7 +79,7 @@ public class RelatorioService {
                         && !r.getData().isAfter(dataFim.atTime(23, 59)))
                 .count();
 
-        // ---- 3️⃣ Criar objeto de relatório consolidado ----
+
         Relatorio relatorio = new Relatorio();
         relatorio.setUsuario(usuario);
         relatorio.setDataInicio(dataInicio);
@@ -89,18 +89,29 @@ public class RelatorioService {
         relatorio.setReunioesRealizadas(reunioesRealizadas);
         relatorio.setMinutosFocoTotal(totalMinutosFoco);
 
-        // Campos de IA (placeholder — preenchidos futuramente)
+
         relatorio.setPercentualConclusao(null);
         relatorio.setRiscoBurnout(null);
         relatorio.setTendenciaProdutividade(null);
         relatorio.setTendenciaFoco(null);
+        relatorio.setResumoGeral(null);
+        relatorio.setInsights(null);
+        relatorio.setRecomendacaoIA(null);
 
-        // ---- 4️⃣ Salvar e retornar ----
         Relatorio salvo = relatorioRepository.save(relatorio);
-        System.out.println("Relatório gerado com sucesso para o usuário: " + usuario.getNome());
-
         return relatorioMapper.toResponse(salvo);
     }
+
+
+    public Relatorio saveRelatorio(Relatorio relatorio) {
+        return relatorioRepository.save(relatorio);
+    }
+
+
+    public Relatorio findEntityById(Long id) {
+        return relatorioRepository.findById(id).orElse(null);
+    }
+
 
     public List<RelatorioResponse> findByUsuario(Long usuarioId) {
         return relatorioRepository.findByUsuarioId(usuarioId)
@@ -108,6 +119,7 @@ public class RelatorioService {
                 .map(relatorioMapper::toResponse)
                 .toList();
     }
+
 
     public boolean deletarRelatorio(Long id) {
         if (relatorioRepository.existsById(id)) {
