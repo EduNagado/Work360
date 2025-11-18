@@ -39,6 +39,17 @@ stages:
         steps:
           - checkout: self
 
+          # ----------------------------------------
+          # 🧪 JUnit Tests (único bloco adicionado)
+          # ----------------------------------------
+          - task: Gradle@3
+            displayName: 'Executar Testes JUnit'
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: 'clean test'
+              publishJUnitResults: true
+              testResultsFiles: '**/build/test-results/test/*.xml'
+
           - task: AzureCLI@2
             displayName: 'Login no Azure e criar ACR se não existir'
             inputs:
