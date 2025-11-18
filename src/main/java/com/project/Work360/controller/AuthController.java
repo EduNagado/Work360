@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/login")
-@Tag(name = "2 - Login", description = "Autenticação e geração de token JWT")
+@Tag(name = "2 - Login")
 public class AuthController {
 
     @Autowired

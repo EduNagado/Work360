@@ -20,15 +20,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/analytics")
-@Tag(name = "5 - Analytics", description = "Gerencia eventos e métricas analíticas dos usuários")
+@Tag(name = "5 - Analytics")
 public class AnalyticsController {
 
     @Autowired
     private AnalyticsService analyticsService;
 
-    // -----------------------------------------------------------------------
-    // 1️⃣ CRIAR EVENTO + GERAR MÉTRICAS AUTOMATICAMENTE
-    // -----------------------------------------------------------------------
     @Operation(summary = "Cria um novo evento analítico e atualiza as métricas automaticamente")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Evento criado e métricas atualizadas com sucesso!",
@@ -40,15 +37,13 @@ public class AnalyticsController {
     public ResponseEntity<AnalyticsEventoResponse> createEvento(@Valid @RequestBody AnalyticsEventoRequest request) {
         AnalyticsEventoResponse response = analyticsService.saveEvento(request);
 
-        // ✅ Gera ou atualiza as métricas diárias do usuário
+
         analyticsService.gerarMetricasCompletas(request.usuarioId());
 
         return ResponseEntity.status(201).body(response);
     }
 
-    // -----------------------------------------------------------------------
-    // 2️⃣ LISTAR HISTÓRICO COMPLETO DE MÉTRICAS DO USUÁRIO
-    // -----------------------------------------------------------------------
+
     @Operation(summary = "Lista o histórico completo de métricas de um usuário")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Métricas retornadas com sucesso!",
@@ -66,9 +61,7 @@ public class AnalyticsController {
         return ResponseEntity.ok(metricas);
     }
 
-    // -----------------------------------------------------------------------
-    // 3️⃣ LISTAR APENAS A MÉTRICA DO DIA ATUAL
-    // -----------------------------------------------------------------------
+
     @Operation(summary = "Retorna as métricas do dia atual para um usuário")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Métricas do dia retornadas com sucesso!",
