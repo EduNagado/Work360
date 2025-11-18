@@ -33,7 +33,7 @@ variables:
     value: 'work360-plan'
 
 # =====================================================
-# 🧱 STAGE 1 — BUILD + TEST + DOCKER PUSH
+#  STAGE 1 — BUILD + TEST + DOCKER PUSH
 # =====================================================
 stages:
   - stage: Build
