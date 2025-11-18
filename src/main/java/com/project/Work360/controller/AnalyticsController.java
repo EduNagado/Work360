@@ -31,7 +31,7 @@ public class AnalyticsController {
             @ApiResponse(responseCode = "201", description = "Evento criado e métricas atualizadas com sucesso!",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = AnalyticsEventoResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao criar evento!", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Erro ao criar evento !", content = @Content)
     })
     @PostMapping("/eventos")
     public ResponseEntity<AnalyticsEventoResponse> createEvento(@Valid @RequestBody AnalyticsEventoRequest request) {
