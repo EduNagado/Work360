@@ -146,7 +146,7 @@ stages:
                   inputs:
                     script: |
                       echo "=== INICIANDO TESTES DE API ==="
-                      API_URL="https://gefmottu-api.azurewebsites.net"
+                      API_URL="https://work360-api.azurewebsites.net/"
                       echo "Testing application at: $API_URL"
 
                       echo "Testing Swagger UI..."
