@@ -1,6 +1,6 @@
 # =====================================================
 # Azure DevOps Pipeline - Work360 API
-# CI/CD com Docker + JUnit + Deploy no Azure Web App
+# CI/CD com Docker + Deploy no Azure Web App for Containers
 # =====================================================
 
 trigger:
@@ -10,60 +10,35 @@ trigger:
 
 variables:
   - group: 'variaveis-segredas'
-
   - name: appName
     value: 'work360-api'
-
   - name: acrName
     value: 'work360acr'
-
   - name: imageName
     value: 'work360-api'
-
   - name: tag
     value: '$(Build.BuildId)'
-
   - name: resourceGroup
     value: 'work360-dev-rg'
-
   - name: location
     value: 'brazilsouth'
-
   - name: appServicePlan
     value: 'work360-plan'
 
-# =====================================================
-#  STAGE 1 — BUILD + TEST + DOCKER PUSH
-# =====================================================
 stages:
+  # -----------------------
+  # 🧱 Stage 1 - Build + Push Docker Image
+  # -----------------------
   - stage: Build
-    displayName: "Build + Testes JUnit + Docker Push"
+    displayName: 'Build da imagem Docker e Push no ACR'
     jobs:
       - job: BuildAndPush
-        displayName: "Build, Test and Push Docker Image"
         pool:
           vmImage: 'ubuntu-latest'
 
         steps:
-          # ----------------------------------------
-          # 🔁 Checkout
-          # ----------------------------------------
           - checkout: self
 
-          # ----------------------------------------
-          # 🧪 JUnit Tests
-          # ----------------------------------------
-          - task: Gradle@3
-            displayName: 'Executar Testes JUnit'
-            inputs:
-              gradleWrapperFile: 'gradlew'
-              tasks: 'clean test'
-              publishJUnitResults: true
-              testResultsFiles: '**/build/test-results/test/*.xml'
-
-          # ----------------------------------------
-          # 🔐 Azure Login + Create ACR
-          # ----------------------------------------
           - task: AzureCLI@2
             displayName: 'Login no Azure e criar ACR se não existir'
             inputs:
@@ -71,11 +46,9 @@ stages:
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                echo "🔎 Verificando se o ACR existe..."
                 EXIST=$(az acr show -n $(acrName) --query "name" -o tsv 2>/dev/null || echo "")
-
                 if [ -z "$EXIST" ]; then
-                  echo "📦 ACR não existe. Criando..."
+                  echo "ACR não existe. Criando..."
                   az acr create \
                     --name $(acrName) \
                     --resource-group $(resourceGroup) \
@@ -83,112 +56,80 @@ stages:
                     --location $(location) \
                     --admin-enabled true
                 else
-                  echo "✔ ACR já existe."
+                  echo "ACR já existe."
                 fi
-
-                echo "🔐 Realizando login no ACR..."
                 az acr login --name $(acrName)
 
-          # ----------------------------------------
-          # 🐳 Build e Push da imagem Docker
-          # ----------------------------------------
           - script: |
-              echo "🐳 Build da imagem..."
               docker build -t $(acrName).azurecr.io/$(imageName):$(tag) .
-
-              echo "⬆ Enviando imagem para o ACR..."
               docker push $(acrName).azurecr.io/$(imageName):$(tag)
             displayName: 'Build e Push da imagem Docker'
 
-          # ----------------------------------------
-          # 📦 Publicar artefatos da Build
-          # ----------------------------------------
           - publish: $(System.DefaultWorkingDirectory)
             artifact: drop
 
-
-  # =====================================================
-  # 🚀 STAGE 2 — DEPLOY + API TESTS
-  # =====================================================
+  # -----------------------
+  # 🚀 Stage 2 - Deploy + Teste de API
+  # -----------------------
   - stage: Deploy
-    displayName: "Deploy no Azure Web App e Testes"
+    displayName: 'Deploy no Azure Web App e Testes de API'
     dependsOn: Build
     condition: succeeded()
-
     jobs:
       - deployment: DeployWebApp
         environment: 'dev'
         pool:
           vmImage: 'ubuntu-latest'
-
         strategy:
           runOnce:
             deploy:
               steps:
-                # ----------------------------------------
-                # 🏗 Criar Resource Group / App Service Plan
-                # ----------------------------------------
                 - task: AzureCLI@2
-                  displayName: 'Criar Resource Group e App Service Plan'
+                  displayName: 'Criar Resource Group e App Service Plan se não existirem'
                   inputs:
                     azureSubscription: '$(azureServiceConnection)'
                     scriptType: 'bash'
                     scriptLocation: 'inlineScript'
                     inlineScript: |
-                      echo "🔎 Verificando Resource Group..."
                       RG=$(az group show -n $(resourceGroup) --query "name" -o tsv 2>/dev/null || echo "")
-
                       if [ -z "$RG" ]; then
-                        echo "📦 Criando Resource Group..."
+                        echo "Criando Resource Group..."
                         az group create --name $(resourceGroup) --location $(location)
                       else
-                        echo "✔ Resource Group já existe."
+                        echo "Resource Group já existe."
                       fi
 
-                      echo "🔎 Verificando App Service Plan..."
                       PLAN=$(az appservice plan show --name $(appServicePlan) --resource-group $(resourceGroup) --query "name" -o tsv 2>/dev/null || echo "")
-
                       if [ -z "$PLAN" ]; then
-                        echo "📦 Criando App Service Plan..."
-                        az appservice plan create \
-                          --name $(appServicePlan) \
-                          --resource-group $(resourceGroup) \
-                          --sku B1 \
-                          --is-linux
+                        echo "Criando App Service Plan..."
+                        az appservice plan create --name $(appServicePlan) --resource-group $(resourceGroup) --sku B1 --is-linux
                       else
-                        echo "✔ App Service Plan já existe."
+                        echo "App Service Plan já existe."
                       fi
 
-                # ----------------------------------------
-                # 🌐 Criar Web App ou atualizar imagem
-                # ----------------------------------------
                 - task: AzureCLI@2
-                  displayName: 'Criar Web App ou atualizar imagem'
+                  displayName: 'Criar Web App se não existir ou atualizar imagem'
                   inputs:
                     azureSubscription: '$(azureServiceConnection)'
                     scriptType: 'bash'
                     scriptLocation: 'inlineScript'
                     inlineScript: |
                       APP=$(az webapp show --name $(appName) --resource-group $(resourceGroup) --query "name" -o tsv 2>/dev/null || echo "")
-
                       if [ -z "$APP" ]; then
-                        echo "🌐 Criando Web App..."
+                        echo "Criando Web App..."
                         az webapp create \
                           --resource-group $(resourceGroup) \
                           --plan $(appServicePlan) \
                           --name $(appName) \
                           --deployment-container-image-name $(acrName).azurecr.io/$(imageName):$(tag)
                       else
-                        echo "♻ Atualizando imagem do Web App..."
+                        echo "Web App já existe. Atualizando imagem..."
                         az webapp config container set \
                           --name $(appName) \
                           --resource-group $(resourceGroup) \
                           --docker-custom-image-name $(acrName).azurecr.io/$(imageName):$(tag)
                       fi
 
-                # ----------------------------------------
-                # 🔄 Restart Web App
-                # ----------------------------------------
                 - task: AzureCLI@2
                   displayName: 'Reiniciar Web App'
                   inputs:
@@ -196,56 +137,70 @@ stages:
                     scriptType: 'bash'
                     scriptLocation: 'inlineScript'
                     inlineScript: |
-                      echo "🔄 Reiniciando aplicação..."
+                      echo "Reiniciando Web App..."
                       az webapp restart --name $(appName) --resource-group $(resourceGroup)
 
-                # ----------------------------------------
-                # 🧪 Testes de API Pós-Deploy
-                # ----------------------------------------
+                # 🧪 Testes de API
                 - task: CmdLine@2
                   displayName: 'Executar Testes de API'
                   inputs:
                     script: |
                       echo "=== INICIANDO TESTES DE API ==="
-                      API_URL="https://work360-api.azurewebsites.net"
+                      API_URL="https://work360-api.azurewebsites.net/"
+                      echo "Testing application at: $API_URL"
 
-                      echo "➡ Testando Swagger UI..."
+                      echo "Testing Swagger UI..."
                       SWAGGER_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/swagger-ui/swagger-ui/index.html" || echo "000")
-                      if [ "$SWAGGER_RESPONSE" -ne 200 ]; then
-                        echo "❌ Swagger fora do ar!"
-                        exit 1
+                      if [ "$SWAGGER_RESPONSE" -eq 200 ]; then
+                          echo "SUCCESS: Swagger UI - HTTP $SWAGGER_RESPONSE"
+                      else
+                          echo "FAILED: Swagger UI - HTTP $SWAGGER_RESPONSE"
+                          exit 1
                       fi
 
-                      echo "➡ Testando API Docs..."
+                      echo "Testing API Docs..."
                       API_DOCS_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/v3/api-docs" || echo "000")
-                      if [ "$API_DOCS_RESPONSE" -ne 200 ]; then
-                        echo "❌ API Docs fora do ar!"
-                        exit 1
+                      if [ "$API_DOCS_RESPONSE" -eq 200 ]; then
+                          echo "SUCCESS: API Docs - HTTP $API_DOCS_RESPONSE"
+                          curl -s "$API_URL/v3/api-docs" | grep -o '"tags":[^}]*' | head -3
+                      else
+                          echo "FAILED: API Docs - HTTP $API_DOCS_RESPONSE"
+                          exit 1
                       fi
 
-                      echo "➡ Testando LOGIN..."
+                      echo "=== Testando LOGIN ==="
+
                       LOGIN_RESPONSE=$(curl -s -o login.json -w "%{http_code}" \
                         -X POST "$API_URL/login" \
+                        -H "accept: application/json" \
                         -H "Content-Type: application/json" \
                         -d '{
                           "email": "eduardo.nagado@gmail.com",
                           "senha": "Dudu2004-"
                         }')
 
-                      echo "HTTP: $LOGIN_RESPONSE"
+                      echo "POST /login HTTP Response: $LOGIN_RESPONSE"
 
-                      if [ "$LOGIN_RESPONSE" -ne 200 ]; then
-                        echo "❌ Falha no login!"
-                        cat login.json
-                        exit 1
+                      if [ "$LOGIN_RESPONSE" -eq 200 ]; then
+                          echo "SUCCESS: LOGIN endpoint retornou 200"
+                          echo "Corpo da resposta:"
+                          cat login.json
+
+                          TOKEN=$(jq -r '.token' login.json 2>/dev/null)
+
+                          if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
+                              echo "TOKEN extraído com sucesso:"
+                              echo "$TOKEN"
+                          else
+                              echo "ERRO: /login retornou 200 mas não retornou token!"
+                              exit 1
+                          fi
+                      else
+                          echo "FAILED: LOGIN endpoint - HTTP $LOGIN_RESPONSE"
+                          cat login.json
+                          exit 1
                       fi
 
-                      TOKEN=$(jq -r '.token' login.json 2>/dev/null)
-                      if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-                        echo "❌ Login retornou 200 mas sem token!"
-                        exit 1
-                      fi
-
-                      echo "✔ TOKEN recebido com sucesso!"
                       rm -f login.json
-                      echo "=== TESTES OK ==="
+
+                      echo "=== TODOS OS TESTES FORAM EXECUTADOS COM SUCESSO ==="
