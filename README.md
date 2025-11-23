@@ -6,7 +6,6 @@ Ela foi criada como solução para melhorar a organização de equipes, facilita
 A aplicação utiliza **Java 21 + Spring Boot 3**, com **JWT**, **RAG**, agentes de IA e uma arquitetura modular, limpa e escalável.
 
 ---
-
 # 🚀 Funcionalidades Principais
 
 ### ✅ **Gerenciamento de Usuários**
@@ -222,6 +221,16 @@ Os principais endpoints da API Work360 incluem:
 - Swagger/OpenAPI  
 
 ---
+
+# Arquitetura Cloud
+
+![Diagramawork360](https://github.com/user-attachments/assets/7b972941-2222-44f1-b150-0ac333046448)
+
+# Arquitetura do Software
+
+<img width="1822" height="866" alt="image" src="https://github.com/user-attachments/assets/56e7a2dc-8012-42fc-a6a8-07f4b0d1d617" />
+
+
 
 # 🏁 Como rodar o projeto
 
