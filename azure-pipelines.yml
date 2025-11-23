@@ -215,4 +215,3 @@ stages:
                       rm -f login.json
 
                       echo "=== TODOS OS TESTES FORAM EXECUTADOS COM SUCESSO ==="
-d
